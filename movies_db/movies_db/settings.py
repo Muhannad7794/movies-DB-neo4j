@@ -1,4 +1,5 @@
 from pathlib import Path
+from neomodel import config
 import os
 from dotenv import load_dotenv
 
@@ -21,6 +22,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG")
 
 ALLOWED_HOSTS = []
+
 
 CORS_ALLOW_ALL_ORIGINS = True
 # Application definition
@@ -72,14 +74,24 @@ TEMPLATES = [
 WSGI_APPLICATION = "movies_db.wsgi.application"
 
 
-# Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
+# Database configs:
 
+# import the neo4j router
+DATABASE_ROUTERS = ["movies_db.routers.Neo4jRouter"]
+
+# Neo4j database configuration (for neomodel)
+config.DATABASE_URL = os.getenv("NEO4J_URL")
+
+# Database configuration
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
-    }
+    },
+    "neo4j": {
+        "ENGINE": "",
+        "NAME": "Movies_db",
+    },
 }
 
 
@@ -133,7 +145,7 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Movies_db API",
-    "DESCRIPTION": "A simple API to list movies and their directors",
+    "DESCRIPTION": "A simple API to list movies and their directors using neo4j and django",
     "VERSION": "1.0.0",
     "SCHEMA_PATH_PREFIX": "/api/v1",
     "SERVE_INCLUDE_SCHEMA": False,
