@@ -80,7 +80,7 @@ WSGI_APPLICATION = "movies_db.wsgi.application"
 DATABASE_ROUTERS = ["movies_db.routers.Neo4jRouter"]
 
 # Neo4j database configuration (for neomodel)
-config.DATABASE_URL = os.getenv("NEO4J_URL")
+config.DATABASE_URL = "neo4j+s://neo4j:neo4j-kea-Access@50b88c1b.databases.neo4j.io"
 
 # Database configuration
 DATABASES = {
