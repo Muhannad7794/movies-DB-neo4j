@@ -23,7 +23,7 @@ class MediaFile(StructuredNode):
 class Movie(StructuredNode):
     title = StringProperty(unique_index=True, required=True)
     genre = StringProperty()
-    release_year = IntegerProperty()
+    releaseYear = IntegerProperty()
     credits_score = FloatProperty()
     # Relationships
     directed_by = RelationshipTo("Director", "DIRECTED_BY")

@@ -63,7 +63,7 @@ venv.bak/
 .vscode/
 
 #local files
-azure_conn.py
+neo_conn.py
 local_conn.py
 certificates/
 source_files/
