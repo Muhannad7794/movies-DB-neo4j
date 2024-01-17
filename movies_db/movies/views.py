@@ -17,6 +17,8 @@ class DirectorsViewSet(viewsets.ViewSet):
     A ViewSet for listing, retrieving, creating, updating, and deleting directors.
     """
 
+    serializer_class = DirectorsSerializer
+
     def list(self, request):
         search = request.query_params.get("search")
         order = request.query_params.get("order", "director_name")  # Default ordering
@@ -67,13 +69,13 @@ class DirectorsViewSet(viewsets.ViewSet):
         director.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    
-
 
 class StudiosViewSet(viewsets.ViewSet):
     """
     A ViewSet for listing, retrieving, creating, updating, and deleting studios.
     """
+
+    serializer_class = StudiosSerializer
 
     def list(self, request):
         search = request.query_params.get("search")
@@ -129,6 +131,8 @@ class MoviesViewSet(viewsets.ViewSet):
     A ViewSet for listing, retrieving, creating, updating, and deleting movies.
     """
 
+    serializer_class = MoviesSerializer
+
     def list(self, request):
         search = request.query_params.get("search")
         order = request.query_params.get("order", "title")  # Default ordering
@@ -182,6 +186,8 @@ class MediaFileViewSet(viewsets.ViewSet):
     """
     A ViewSet for listing, retrieving, creating, updating, and deleting media files.
     """
+
+    serializer_class = MediaFilesSerializer
 
     def list(self, request):
         search = request.query_params.get("search")
