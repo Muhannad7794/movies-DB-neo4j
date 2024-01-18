@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view
-from django.shortcuts import render
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from .services.recommend import TMDBService
 from .serializers import (
     DirectorsSerializer,
@@ -13,30 +13,35 @@ from .models import Director, Studio, Movie, MediaFile
 
 
 class DirectorsViewSet(viewsets.ViewSet):
-    """
-    A ViewSet for listing, retrieving, creating, updating, and deleting directors.
-    """
-
     serializer_class = DirectorsSerializer
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="search", description="Search Directors", required=False, type=str
+            ),
+            OpenApiParameter(
+                name="order", description="Order by", required=False, type=str
+            ),
+        ]
+    )
     def list(self, request):
         search = request.query_params.get("search")
-        order = request.query_params.get("order", "director_name")  # Default ordering
+        order = request.query_params.get("order", "director_name")
 
         queryset = Director.nodes
+        queryset_list = list(queryset)
 
         # Implementing custom search logic
         if search:
-            queryset = [
+            queryset_list = [
                 director
-                for director in queryset
+                for director in queryset_list
                 if search.lower() in director.director_name.lower()
                 or search.lower() in director.nationality.lower()
                 or search.lower() in director.awards.lower()
+                or search.lower() in director.director_best_movies.lower()
             ]
-
-        # Convert NodeSet to a list for sorting
-        queryset_list = list(queryset)
 
         # Implementing custom ordering logic
         if order:
@@ -45,54 +50,87 @@ class DirectorsViewSet(viewsets.ViewSet):
                 reverse = True
                 order = order[1:]
             if order in ["director_name", "director_date_of_birth"]:
-                queryset_list.sort(key=lambda x: getattr(x, order), reverse=reverse)
+                queryset_list.sort(
+                    key=lambda x: getattr(x, order, None), reverse=reverse
+                )
 
-        serializer = DirectorsSerializer(queryset, many=True)
+        serializer = DirectorsSerializer(queryset_list, many=True)
         return Response(serializer.data)
+
+    def create(self, request):
+        serializer = DirectorsSerializer(data=request.data)
+        if serializer.is_valid():
+            director = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, pk=None):
         try:
             director = Director.nodes.get(id=pk)
         except Director.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-
         serializer = DirectorsSerializer(director)
         return Response(serializer.data)
 
-    # Implementing custom delete logic
-    def destroy(self, request, pk=None):
+    def update(self, request, pk=None):
         try:
             director = Director.nodes.get(id=pk)
         except Director.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = DirectorsSerializer(director, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        director.delete()
+    def partial_update(self, request, pk=None):
+        try:
+            director = Director.nodes.get(id=pk)
+        except Director.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = DirectorsSerializer(director, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, pk=None):
+        try:
+            director = Director.nodes.get(id=pk)
+            director.delete()
+        except Director.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class StudiosViewSet(viewsets.ViewSet):
-    """
-    A ViewSet for listing, retrieving, creating, updating, and deleting studios.
-    """
-
     serializer_class = StudiosSerializer
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="search", description="Search Studios", required=False, type=str
+            ),
+            OpenApiParameter(
+                name="order", description="Order by", required=False, type=str
+            ),
+        ]
+    )
     def list(self, request):
         search = request.query_params.get("search")
-        order = request.query_params.get("order", "name")  # Default ordering
+        order = request.query_params.get("order", "name")
 
         queryset = Studio.nodes
+        queryset_list = list(queryset)
 
         # Implementing custom search logic
         if search:
-            queryset = [
+            queryset_list = [
                 studio
-                for studio in queryset
+                for studio in queryset_list
                 if search.lower() in studio.name.lower()
                 or search.lower() in studio.location.lower()
             ]
-        # Convert NodeSet to a list for sorting
-        queryset_list = list(queryset)
 
         # Implementing custom ordering logic
         if order:
@@ -101,54 +139,91 @@ class StudiosViewSet(viewsets.ViewSet):
                 reverse = True
                 order = order[1:]
             if order in ["name", "founded"]:
-                queryset_list.sort(key=lambda x: getattr(x, order), reverse=reverse)
+                queryset_list.sort(
+                    key=lambda x: getattr(x, order, None), reverse=reverse
+                )
 
-        serializer = StudiosSerializer(queryset, many=True)
+        serializer = StudiosSerializer(queryset_list, many=True)
         return Response(serializer.data)
+
+    def create(self, request):
+        serializer = StudiosSerializer(data=request.data)
+        if serializer.is_valid():
+            studio = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, pk=None):
         try:
             studio = Studio.nodes.get(id=pk)
         except Studio.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-
         serializer = StudiosSerializer(studio)
         return Response(serializer.data)
 
-    # Implementing custom delete logic
-    def destroy(self, request, pk=None):
+    def update(self, request, pk=None):
         try:
             studio = Studio.nodes.get(id=pk)
         except Studio.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = StudiosSerializer(studio, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        studio.delete()
+    def partial_update(self, request, pk=None):
+        try:
+            studio = Studio.nodes.get(id=pk)
+        except Studio.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = StudiosSerializer(studio, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, pk=None):
+        try:
+            studio = Studio.nodes.get(id=pk)
+            studio.delete()
+        except Studio.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MoviesViewSet(viewsets.ViewSet):
-    """
-    A ViewSet for listing, retrieving, creating, updating, and deleting movies.
-    """
-
     serializer_class = MoviesSerializer
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="search", description="Search Movies", required=False, type=str
+            ),
+            OpenApiParameter(
+                name="order", description="Order by", required=False, type=str
+            ),
+        ]
+    )
     def list(self, request):
         search = request.query_params.get("search")
-        order = request.query_params.get("order", "title")  # Default ordering
+        order = request.query_params.get("order", "title")
 
         queryset = Movie.nodes
+        queryset_list = list(queryset)
 
         # Implementing custom search logic
         if search:
-            queryset = [
+            queryset_list = [
                 movie
-                for movie in queryset
+                for movie in queryset_list
                 if search.lower() in movie.title.lower()
                 or search.lower() in movie.genre.lower()
+                # search with realease year. note that release year is an integer
+                or search in str(movie.releaseYear)
+                #search with credits score. note that credits_score is a float
+                or search in str(movie.credits_score)
             ]
-        # Convert NodeSet to a list for sorting
-        queryset_list = list(queryset)
 
         # Implementing custom ordering logic
         if order:
@@ -156,54 +231,90 @@ class MoviesViewSet(viewsets.ViewSet):
             if order.startswith("-"):
                 reverse = True
                 order = order[1:]
-            if order in ["title", "release_year", "credits_score"]:
-                queryset_list.sort(key=lambda x: getattr(x, order), reverse=reverse)
+            if order in ["title", "releaseYear", "credits_score"]:
+                queryset_list.sort(
+                    key=lambda x: getattr(x, order, None), reverse=reverse
+                )
 
-        serializer = MoviesSerializer(queryset, many=True)
+        serializer = MoviesSerializer(queryset_list, many=True)
         return Response(serializer.data)
+
+    def create(self, request):
+        serializer = MoviesSerializer(data=request.data)
+        if serializer.is_valid():
+            movie = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, pk=None):
         try:
             movie = Movie.nodes.get(id=pk)
         except Movie.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-
         serializer = MoviesSerializer(movie)
         return Response(serializer.data)
 
-    # Implementing custom delete logic
-    def destroy(self, request, pk=None):
+    def update(self, request, pk=None):
         try:
             movie = Movie.nodes.get(id=pk)
         except Movie.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = MoviesSerializer(movie, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        movie.delete()
+    def partial_update(self, request, pk=None):
+        try:
+            movie = Movie.nodes.get(id=pk)
+        except Movie.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = MoviesSerializer(movie, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, pk=None):
+        try:
+            movie = Movie.nodes.get(id=pk)
+            movie.delete()
+        except Movie.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MediaFileViewSet(viewsets.ViewSet):
-    """
-    A ViewSet for listing, retrieving, creating, updating, and deleting media files.
-    """
-
     serializer_class = MediaFilesSerializer
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="search",
+                description="Search Media Files",
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name="order", description="Order by", required=False, type=str
+            ),
+        ]
+    )
     def list(self, request):
         search = request.query_params.get("search")
-        order = request.query_params.get("order", "url")  # Default ordering
+        order = request.query_params.get("order", "title")
 
         queryset = MediaFile.nodes
+        queryset_list = list(queryset)
 
         # Implementing custom search logic
         if search:
-            queryset = [
+            queryset_list = [
                 media_file
-                for media_file in queryset
-                if search.lower() in media_file.url.lower()
+                for media_file in queryset_list
+                if search.lower() in media_file.movie.lower()
             ]
-        # Convert NodeSet to a list for sorting
-        queryset_list = list(queryset)
 
         # Implementing custom ordering logic
         if order:
@@ -211,37 +322,58 @@ class MediaFileViewSet(viewsets.ViewSet):
             if order.startswith("-"):
                 reverse = True
                 order = order[1:]
-            if order in ["url"]:
-                queryset_list.sort(key=lambda x: getattr(x, order), reverse=reverse)
+            if order in ["movie"]:
+                queryset_list.sort(
+                    key=lambda x: getattr(x, order, None), reverse=reverse
+                )
 
-        serializer = MediaFilesSerializer(queryset, many=True)
+        serializer = MediaFilesSerializer(queryset_list, many=True)
         return Response(serializer.data)
+
+    def create(self, request):
+        serializer = MediaFilesSerializer(data=request.data)
+        if serializer.is_valid():
+            media_file = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, pk=None):
         try:
             media_file = MediaFile.nodes.get(id=pk)
         except MediaFile.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-
         serializer = MediaFilesSerializer(media_file)
         return Response(serializer.data)
 
-    # Implementing custom delete logic
-    def destroy(self, request, pk=None):
+    def update(self, request, pk=None):
         try:
             media_file = MediaFile.nodes.get(id=pk)
         except MediaFile.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-
-        media_file.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def post(self, request):
-        serializer = MediaFilesSerializer(data=request.data)
+        serializer = MediaFilesSerializer(media_file, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response({"error": "Invalid data"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, pk=None):
+        try:
+            media_file = MediaFile.nodes.get(id=pk)
+        except MediaFile.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = MediaFilesSerializer(media_file, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, pk=None):
+        try:
+            media_file = MediaFile.nodes.get(id=pk)
+            media_file.delete()
+        except MediaFile.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(["GET"])

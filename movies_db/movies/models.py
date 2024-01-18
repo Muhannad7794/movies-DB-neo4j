@@ -13,7 +13,7 @@ from neomodel import (
 # Neo4j model for Media Files
 class MediaFile(StructuredNode):
     url = StringProperty(unique_index=True, required=True)
-    # We can specify relationships to different types of nodes if needed
+    # relationships to different nodes 
     movie = RelationshipFrom("Movie", "HAS_POSTER")
     director = RelationshipFrom("Director", "HAS_IMAGE")
     studio = RelationshipFrom("Studio", "HAS_LOGO")
