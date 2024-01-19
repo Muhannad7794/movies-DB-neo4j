@@ -8,11 +8,15 @@ function MovieDetails({ movie }) {
   const navigate = useNavigate();
 
   const handleDirectorClick = () => {
-    navigate(`/directors/${movie.director.id}`);
+    if (movie.director_name) {
+      navigate(`/directors/${movie.director_id}`);
+    }
   };
 
   const handleStudioClick = () => {
-    navigate(`/studios/${movie.studio.id}`);
+    if (movie.studio_name) {
+      navigate(`/studios/${movie.studio_id}`);
+    }
   };
 
   const detailsStyle = {
@@ -61,7 +65,7 @@ function MovieDetails({ movie }) {
             className="interactive-text"
             id="director_click"
           >
-            Director: {movie.director.director_name}
+            Director: {movie.director_name}
           </p>
           <p>IMDB Score: {movie.credits_score}</p>
           <p
@@ -69,7 +73,7 @@ function MovieDetails({ movie }) {
             className="interactive-text"
             id="studio_click"
           >
-            Production Studio: {movie.studio.name}
+            Production Studio: {movie.studio_name}
           </p>
         </div>
         <div className="movie-details-image" style={detailsStyle}>

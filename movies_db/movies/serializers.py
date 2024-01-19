@@ -67,6 +67,24 @@ class MoviesSerializer(serializers.Serializer):
     director = DirectorsSerializer(read_only=True)
     studio = StudiosSerializer(read_only=True)
     poster_url = serializers.SerializerMethodField()
+    # relationships to different nodes
+    director_name = serializers.CharField(max_length=100, read_only=True)
+    studio_name = serializers.CharField(max_length=100, read_only=True)
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        director_relation = instance.directed_by.single()
+        studio_relation = instance.produced_by.single()
+
+        representation["director_name"] = (
+            director_relation.director_name if director_relation else None
+        )
+        representation["studio_name"] = studio_relation.name if studio_relation else None
+
+        representation['director_id'] = director_relation.element_id if director_relation else None
+        representation['studio_id'] = studio_relation.element_id if studio_relation else None
+
+        return representation
 
     def get_poster_url(self, obj):
         if obj.poster.single():
